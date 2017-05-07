@@ -8,18 +8,21 @@
 function getParameterDefinitions() {
   return [
     {
+        name: 'pods',
+        type: 'int',
+        initial: 3,
+        caption: 'Height:'
+    },
+    {
       name: 'resolution',
       type: 'choice',
-      values: [0, 1, 2, 3, 4, 5],
+      values: [0, 1, 2],
       captions: [
-        'very low (6,16)',
-        'low (8,24)',
+        'low (8,16)',
         'normal (12,32)',
-        'high (24,64)',
-        'very high (48,128)',
-        'ultra high (96,256)'
+        'high (24,128)',
       ],
-      initial: 2,
+      initial: 0,
       caption: 'Resolution:'
     }
   ];
@@ -27,12 +30,9 @@ function getParameterDefinitions() {
 
 function main(params) {
   var resolutions = [
-    [6, 16],
-    [8, 24],
+    [8, 16],
     [12, 32],
-    [24, 64],
-    [48, 128],
-    [96, 256]
+    [16, 256],
   ];
   CSG.defaultResolution3D = resolutions[params.resolution][0];
   CSG.defaultResolution2D = resolutions[params.resolution][1];
@@ -47,7 +47,6 @@ function main(params) {
   cup.add(Parts.Cylinder(51.35, 1).snap(cup.parts.rim, 'z', 'outside-'), 'lip');
 
   var rimgap = cup.combine('lip').enlarge(1, 1, 1);
-  // console.log('rimgap', rimgap.size());
   var basesize = 58;
 
   var base = util.group();
@@ -73,7 +72,7 @@ function main(params) {
 
   var thickness = 1.6;
   var width = rimgap.size().x;
-  var height = 3;
+  var height = params.pods;
   // var tube = util.group();
 
   base.add(
@@ -84,15 +83,6 @@ function main(params) {
     'tube'
   );
 
-  // tube.add(
-  //   Parts.RoundedCube(basesize, basesize, 5, 5)
-  //     .align(cup.parts.lip, 'xy')
-  //     .snap(base.parts.base, 'z', 'outside-')
-  //     .fillet(2, 'z+')
-  //     .color('yellow'),
-  //   'base'
-  // );
-  //
   base.add(
     Parts.Cylinder(width + 4, 2)
       .chamfer(1, 'z-')
@@ -118,30 +108,6 @@ function main(params) {
     'spine-base'
   );
 
-  // var keyshape = CAG.fromPoints([
-  //   [1, 0],
-  //   [2, 3],
-  //   [-2, 3],
-  //   [-1, 0],
-  //   [-2, -3],
-  //   [2, -3]
-  // ]);
-  // var key = util
-  //   .poly2solid(keyshape, keyshape, 4)
-  //   .rotateX(90)
-  //   .snap(base.parts.base, 'xy', 'inside-')
-  //   .snap(base.parts.base, 'z', 'inside+')
-  //   .translate([5, 0, 3])
-  //   .color('red');
-  // var keys = util.group();
-  // keys.add(key, 'key1');
-  // keys.add(key.rotateZ(90), 'key2');
-  // keys.add(key.rotateZ(180), 'key3');
-  // keys.add(key.rotateZ(-90), 'key4');
-  //
-  // var gap = 0.5;
-  // var keycutouts = keys.clone(p => p.enlarge(gap, gap, gap)).toArray();
-
   var tubewindow = Parts.RoundedCube(45 * (height - 1), 10, 10, 10)
     .rotateY(90)
     .align(base.parts.tube, 'yz')
@@ -159,38 +125,27 @@ function main(params) {
     .color('red');
 
   var sgap = -0.7;
-  return [
-    // cup.combine().color('orange'),
-    // union([
-    // bottomcoutout.enlarge(sgap, sgap, 0),
-    //   slotcoutout.enlarge(sgap, sgap, sgap)
-    // ]).subtract(
-    //   cup.parts.rim
-    //     .enlarge(-5, -5, 0)
-    //     .stretch('z', 20)
-    //     .translate([0, 0, -10])
-    //     .color('cyan')
-    // ),
-    bottomcoutout.enlarge(sgap, sgap, 0).bisect('x').parts.negative,
-    base
-      .combine()
-      .subtract([
-        interior,
-        slotcoutout,
-        bottomcoutout,
-        rimgap.stretch('z', 10).color('cyan'),
-        tubewindow
-      ])
-    // tube
-    //   .combine()
-    //   .subtract(
-    //     Parts.Cone(width - thickness, width + 2 - thickness, 45 * height).align(
-    //       tube.parts.tube,
-    //       'xyz'
-    //     )
-    //   )
-    //   .subtract([tubewindow, ...keycutouts])
-  ];
+  var parts = {
+    dispenser: function() {
+      return base
+        .combine()
+        .subtract([
+          interior,
+          slotcoutout,
+          bottomcoutout,
+          rimgap.stretch('z', 10).color('cyan'),
+          tubewindow
+        ]);
+    },
+    support: function() {
+      return bottomcoutout.enlarge(sgap, sgap, 0).bisect('x').parts.negative;
+    },
+    combined: function() {
+      return union([parts.dispenser(), parts.support()]);
+    }
+    
+  };
+  return parts['combined']().Zero();
 }
 
 // ********************************************************
