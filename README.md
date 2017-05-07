@@ -6,9 +6,11 @@
 
 # Another one?
 
-While, there are many k-cup dispensers/holders available for download, some are overly complex, while others require a lot of filament (~250g) to print.
+While, there are many k-cup dispensers/holders available for download, some are overly complex, and others require a lot of filament (~250g) to print.
 
-Further, I wanted one that would fit on the inside of a cabinet door, between the shelves.  
+Further, I wanted one that would fit on the inside of a cabinet door, between the shelves.
+
+This design prints as one piece, and uses ~35g (4.5m) of PLA for the 3 pod height design.
 
 ![action](action.jpg)
 
