@@ -8,20 +8,28 @@
 function getParameterDefinitions() {
   return [
     {
-        name: 'pods',
-        type: 'int',
-        initial: 3,
-        caption: 'Height:'
+      name: 'pods',
+      type: 'int',
+      initial: 3,
+      caption: 'Height (pods):'
+    },
+    {
+      name: 'nozzel',
+      type: 'float',
+      initial: 0.4,
+      caption: 'Nozzel (mm):'
+    },
+    {
+      name: 'thickness',
+      type: 'float',
+      initial: 1.6,
+      caption: 'Thickness (mm):'
     },
     {
       name: 'resolution',
       type: 'choice',
       values: [0, 1, 2],
-      captions: [
-        'low (8,16)',
-        'normal (12,32)',
-        'high (24,128)',
-      ],
+      captions: ['low (8,16)', 'normal (12,32)', 'high (16,256)'],
       initial: 0,
       caption: 'Resolution:'
     }
@@ -29,11 +37,7 @@ function getParameterDefinitions() {
 }
 
 function main(params) {
-  var resolutions = [
-    [8, 16],
-    [12, 32],
-    [16, 256],
-  ];
+  var resolutions = [[8, 16], [12, 32], [16, 256]];
   CSG.defaultResolution3D = resolutions[params.resolution][0];
   CSG.defaultResolution2D = resolutions[params.resolution][1];
   util.init(CSG);
@@ -48,15 +52,20 @@ function main(params) {
 
   var rimgap = cup.combine('lip').enlarge(1, 1, 1);
   var basesize = 58;
+  var thickness = util.nearest.under(params.thickness, params.nozzel);
+  // console.log('thickness', thickness);
+  var width = rimgap.size().x;
+  var height = params.pods;
 
   var base = util.group();
   base.add(
-    Parts.RoundedCube(basesize, basesize, 10, 5)
+    Parts.RoundedCube(basesize + thickness - 1.6, basesize + thickness - 1.6, 10, 5)
       .align(cup.parts.lip, 'xy')
       .snap(cup.parts.lip, 'z', 'outside-')
       .translate([0, 0, -5])
       .fillet(2, 'z-')
-      .fillet(2, 'z+'),
+      .fillet(2, 'z+')
+      .color('blue'),
     'base'
   );
 
@@ -70,11 +79,6 @@ function main(params) {
     .intersect(base.parts.base)
     .color('purple');
 
-  var thickness = 1.6;
-  var width = rimgap.size().x;
-  var height = params.pods;
-  // var tube = util.group();
-
   base.add(
     Parts.Cone(width + thickness, width + thickness + 2, 45 * height)
       .snap(base.parts.base, 'z', 'outside-')
@@ -87,12 +91,13 @@ function main(params) {
     Parts.Cylinder(width + 4, 2)
       .chamfer(1, 'z-')
       .fillet(1, 'z+')
+      .color('blue')
       .snap(base.parts.tube, 'z', 'inside+'),
     'rim'
   );
 
   base.add(
-    Parts.Cube([5, 10, 45 * height])
+    Parts.Cube([5, 10, 45 * height]).color('blue')
       .align(base.parts.base, 'y')
       .snap(base.parts.base, 'z', 'outside-')
       .snap(base.parts.base, 'x', 'inside-'),
@@ -116,7 +121,10 @@ function main(params) {
     .color('red');
 
   base.add(
-    tubewindow.intersect(base.parts.tube).enlarge(2, 2, 2).color('pink'),
+    tubewindow
+      .intersect(base.parts.tube)
+      .enlarge(2, 2, 2)
+      .color('pink'),
     'tubewindowlip'
   );
 
@@ -143,7 +151,6 @@ function main(params) {
     combined: function() {
       return union([parts.dispenser(), parts.support()]);
     }
-    
   };
   return parts['combined']().Zero();
 }
